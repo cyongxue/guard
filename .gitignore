@@ -1,0 +1,7 @@
+*/a.out
+src/log/logs
+
+.cproject
+.project
+.settings/
+*/*.o
