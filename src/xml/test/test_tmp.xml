@@ -1,0 +1,15 @@
+<myxml2 name="name2" value="def" value2="test">
+  <element3>content3lala \< lala\<</element3>
+  <element4 value="myvalueforelement4">content4</element4>
+  <element5>content5
+    <element51>content51</element51>
+    <element52>content52</element52>
+  </element5>
+  <element6>content6</element6>
+</myxml2>
+
+<guard_config>
+  <active_response>
+    <disabled>yes please \< lala</disabled>
+  </active_response>
+</guard_config>

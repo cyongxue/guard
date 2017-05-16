@@ -100,7 +100,7 @@ int Xml::write_content(const std::string content, unsigned int parent) {
 		error(module.c_str(), "parent > xml_nodes index.");
 		return -1;
 	}
-	_xml_nodes[parent]._contents = content;
+	_xml_nodes[parent]._content = content;
 	return 0;
 }
 
@@ -131,7 +131,7 @@ int Xml::get_attributes(unsigned int parent) {
 			unsigned int i = _curr - 1;
 			/* Search attributes backwards in same parent */
 			while (_xml_nodes[i]._relation == parent && _xml_nodes[i]._xml_type == XmlType::XML_ATTR) {
-				if (strcmp(_xml_nodes[i]._name, attr) == 0) {
+				if (_xml_nodes[i]._name == attr) {
 					error(module.c_str(), "Attribute '%s' already defined.", attr.c_str());
 					return (-1);
 				}
@@ -175,8 +175,6 @@ int Xml::get_attributes(unsigned int parent) {
 				return (-1);
 			}
 		} else if ((location == 1) && (c == c_to_match)) {
-			value[count] = '\0';
-
 			if (write_element(attr, XmlType::XML_ATTR, parent) < 0) {
 				return (-1);
 			}
@@ -273,9 +271,9 @@ int Xml::read_element(unsigned int parent) {
 			if (write_element(elem, XmlType::XML_ELEM, parent) < 0) {
 				return (-1);
 			}
-			currentlycont = _curr - 1;
+			currentlycont = _curr - 1;			// 记录当前层级
 			if (isspace(c)) {
-				if ((_ga = get_attributes(parent)) < 0) {
+				if ((_ga = get_attributes(parent)) < 0) {				// 取Attributes
 					return (-1);
 				}
 			}
@@ -380,14 +378,14 @@ int Xml::is_comment() {
 		// !可能是注释
 		while ((c = fgetc(_fp)) != EOF) {
 			if (c == XML_COM) {
-				if ((c == fgetc(_fp)) == XML_CONFE) {
+				if ((c = fgetc(_fp)) == XML_CONFE) {
 					return 1;
 				}
 				ungetc(c, _fp);
 			}
 			else if (c == '-') {
-				if ((c == xml_fgetc()) == '-') {
-					if ((c == fgetc(_fp)) == XML_CONFE) {
+				if ((c = xml_fgetc()) == '-') {
+					if ((c = fgetc(_fp)) == XML_CONFE) {
 						return 1;
 					}
 					ungetc(c, _fp);
@@ -466,7 +464,7 @@ std::vector<std::string> Xml::get_elements_internal(std::vector<std::string> ele
 	return ret;
 }
 
-std::vector<std::string> Xml::get_content_internal(std::vector<std::string> element_names, std::string attr) const {
+std::vector<std::string> Xml::get_content_internal(std::vector<std::string> element_names, std::string attr) {
 	int i = 0;
 	unsigned int j = 0, l = 0, matched = 0;
 	std::vector<std::string> ret;
@@ -525,7 +523,7 @@ std::vector<std::string> Xml::get_content_internal(std::vector<std::string> elem
 			/* Get content if we are at the end of the array */
 			if (element_names[j].empty()) {
 				/* If we have an attribute to match */
-				if (attr != NULL) {
+				if (!attr.empty()) {
 					unsigned int m = 0;
 					for (m = l + 1; m < _curr; m++) {
 						if (_xml_nodes[m]._xml_type == XmlType::XML_ELEM) {
@@ -542,7 +540,7 @@ std::vector<std::string> Xml::get_content_internal(std::vector<std::string> elem
 					/* Increase the size of the array */
 					ret.push_back(_xml_nodes[l]._content);
 					matched = 1;
-					if (attr != NULL) {
+					if (!attr.empty()) {
 						break;
 					}
 					else if (_foll != 0) {
@@ -569,7 +567,7 @@ std::vector<std::string> Xml::get_content_internal(std::vector<std::string> elem
 }
 
 /* Get one value for a specific attribute */
-std::string Xml::get_attribute_content(std::vector<std::string> element_names, std::string attribute_name) const {
+std::string Xml::get_attribute_content(std::vector<std::string> element_names, std::string attribute_name) {
 
 	auto result = get_content_internal(element_names, attribute_name);
 	if (result.size() == 0) {
@@ -584,7 +582,7 @@ std::string Xml::get_attribute_content(std::vector<std::string> element_names, s
 /* Get the contents for a specific element
  * Use element_name = NULL to start the state
  */
-std::vector<std::string> Xml::get_contents(std::vector<std::string> element_names) const {
+std::vector<std::string> Xml::get_contents(std::vector<std::string> element_names) {
 	std::vector<std::string> ret;
 	if (element_names.size() == 0) {
 		_foll = -1;
@@ -594,13 +592,13 @@ std::vector<std::string> Xml::get_contents(std::vector<std::string> element_name
 }
 
 /* Get all values for a specific element */
-std::vector<std::string> Xml::get_element_contents(std::vector<std::string> element_names) const {
+std::vector<std::string> Xml::get_element_contents(std::vector<std::string> element_names) {
 	_foll = 0;
 	return get_content_internal(element_names, "");
 }
 
 /* Get one value for a specific element */
-std::string Xml::get_one_content_for_element(std::vector<std::string> element_names) const {
+std::string Xml::get_one_content_for_element(std::vector<std::string> element_names) {
 	_foll = 0;
 	auto result = get_content_internal(element_names, "");
 	if (result.size() == 0) {
@@ -668,14 +666,20 @@ uint32_t Xml::root_element_exist(std::string element_name) const {
 std::vector<Node> Xml::get_element_by_node(const Node& node) const {
 
 	std::vector<Node> ret;
-
-	auto i = node._key;
-	auto m = _xml_nodes[i++]._relation + 1;
+	uint32_t i, m;				// m记录当前处理的层级
+	if (node._key == NODE_INVALID) {
+		i = 0;
+		m = 0;
+	}
+	else {
+		i = node._key;
+		m = _xml_nodes[i++]._relation + 1;
+	}
 
 	for (; i < _curr; i++) {
 		if (_xml_nodes[i]._xml_type == XmlType::XML_ELEM) {
 			if ((_xml_nodes[i]._relation == m) && (!_xml_nodes[i]._name.empty())) {
-				auto l = i + 1;
+				auto l = i + 1;			// 如果i的index为element，那么下一个很可能就是attribute
 
 				Node one_node;
 				one_node._element = _xml_nodes[i]._name;
@@ -683,14 +687,11 @@ std::vector<Node> Xml::get_element_by_node(const Node& node) const {
 				one_node._key = i;
 
 				while (l < _curr) {
-					if ((_xml_nodes[i]._xml_type == XmlType::XML_ATTR) &&
-							(_xml_nodes[i]._relation == m) &&
-							(!_xml_nodes[i]._name.empty()) && (!_xml_nodes[i]._content.empty())) {
-						one_node._attributes.push_back(_xml_nodes[i]._name);
-						one_node._values.push_back(_xml_nodes[i]._content);
-
-						one_node._attributes[l - i - 1] = _xml_nodes[l]._name;
-						one_node._values[l - i - 1] = _xml_nodes[l]._content;
+					if ((_xml_nodes[l]._xml_type == XmlType::XML_ATTR) &&
+							(_xml_nodes[l]._relation == m) &&
+							(!_xml_nodes[l]._name.empty()) && (!_xml_nodes[l]._content.empty())) {
+						one_node._attributes.push_back(_xml_nodes[l]._name);
+						one_node._values.push_back(_xml_nodes[l]._content);
 
 						l++;
 					}
@@ -702,8 +703,14 @@ std::vector<Node> Xml::get_element_by_node(const Node& node) const {
 				continue;
 			}
 		}
+
 		if ((_xml_nodes[i]._xml_type == XmlType::XML_ELEM) && (m > _xml_nodes[i]._relation)) {
-			break;
+			if (node._key == NODE_INVALID) {
+				continue;
+			}
+			else {
+				break;
+			}
 		}
 	}
 
@@ -716,7 +723,7 @@ int Xml::apply_variables() {
 
 	std::vector<std::string> var;
 	std::vector<std::string> value;
-	std::vector<std::string> var_placeh;
+	std::string var_placeh;
 
 	for (auto i = 0; i < _curr; i++) {
 		if (_xml_nodes[i]._xml_type == XmlType::XML_VARIABLE_BEGIN) {
@@ -724,7 +731,7 @@ int Xml::apply_variables() {
 
 			for (j = i + 1; j < _curr; j++) {
 
-                if (_xml_nodes[j]._realtion < _xml_nodes[i]._realtion) {
+                if (_xml_nodes[j]._relation < _xml_nodes[i]._relation) {
                     break;
                 }
                 else if (_xml_nodes[j]._xml_type == XmlType::XML_ATTR) {
@@ -743,8 +750,7 @@ int Xml::apply_variables() {
                         _found_var = 1;
                         break;
                     } else {
-                    	_err = "Only \""XML_VAR_ATTRIBUTE"\" is allowed"
-                                " as an attribute for a variable.";
+                    	_err.append("Only \"").append(XML_VAR_ATTRIBUTE).append("\" is allowed as an attribute for a variable.");
                         _err_line = _xml_nodes[j]._line;
                         return -1;
                     }
@@ -782,12 +788,12 @@ int Xml::apply_variables() {
             /* Read the whole string */
             int index = 0;
             while (index < tmp_content.length()) {
-                if (tmp_content[index] == XmlType::XML_VARIABLE_BEGIN) {
+                if (tmp_content[index] == (char)XmlType::XML_VARIABLE_BEGIN) {
                     tp = 0;
                     index++;
 
                     while (1) {
-                        if ((tmp_content[index] == XmlType::XML_VARIABLE_BEGIN)
+                        if ((tmp_content[index] == (char)XmlType::XML_VARIABLE_BEGIN)
                                 || (tmp_content[index] == '\0')
                                 || (tmp_content[index] == '.')
                                 || (tmp_content[index] == '|')
@@ -812,7 +818,7 @@ int Xml::apply_variables() {
                                 _xml_nodes[i]._content.insert(init, value[j], 0, tsize - init);
 
                                 init = _xml_nodes[i]._content.size();
-                                _xml_nodes[i]._content.insert(0, tmp_content[index], 0, tsize - init);
+                                _xml_nodes[i]._content.insert(0, tmp_content.substr(index), 0, tsize - init);
                                 var_placeh = "";
                                 break;
                             }
@@ -844,6 +850,23 @@ go_next:
 	}
 
 	return 0;
+}
+
+
+void Xml::print_all() {
+	info(module.c_str(), "**************** print all begin *******************");
+	for (auto it = _xml_nodes.begin(); it != _xml_nodes.end(); it++) {
+		std::string xml_type;
+		if (it->_xml_type == XmlType::XML_ATTR) {
+			xml_type = "attr";
+		}
+		else if (it->_xml_type == XmlType::XML_ELEM) {
+			xml_type = "elem";
+		}
+		info(module.c_str(), "%d, %s, %s, %s", it->_relation, xml_type.c_str(), it->_name.c_str(), it->_content.c_str());
+	}
+	info(module.c_str(), "**************** print all end *******************");
+	return;
 }
 
 }

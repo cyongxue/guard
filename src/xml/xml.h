@@ -30,21 +30,31 @@ enum class XmlType {
 #define XML_VAR              "var"
 #define XML_VAR_ATTRIBUTE    "name"
 
+#define NODE_INVALID	-1
+
 struct Node {
 	unsigned int _key;
 	std::string  _element;
 	std::string  _content;
 	std::vector<std::string>  _attributes;
 	std::vector<std::string>  _values;
+
+	Node(): _key(0) {};
+	Node(unsigned int key) { _key = key; }
+
+	void print_info() const {
+		info(module.c_str(), "Node: %d, %s, %s", _key, _element.c_str(), _content.c_str());
+		return;
+	}
 };
 
 /* xml节点 */
 class XmlNode {
 	public:
-		uint32_t	_relation;
+		uint32_t	_relation;			// 表示层级
 		XmlType		_xml_type;
 		std::string _name;
-		std::string	_contents;
+		std::string	_content;
 
 		int32_t		_ck;
 		uint32_t	_line;
@@ -76,7 +86,7 @@ class Xml {
 		int read_element(unsigned int parent);
 
 		std::vector<std::string> get_elements_internal(std::vector<std::string> element_names, XmlType type) const;
-		std::vector<std::string> get_content_internal(std::vector<std::string> element_names, std::string attr) const;
+		std::vector<std::string> get_content_internal(std::vector<std::string> element_names, std::string attr);
 
 	public:
 		Xml(std::string file_name);
@@ -96,10 +106,10 @@ class Xml {
 		uint32_t element_exist(std::vector<std::string> element_names) const;
 		uint32_t root_element_exist(std::string element_name) const;
 
-		std::string get_attribute_content(std::vector<std::string> element_names, std::string attribute_name) const;
-		std::vector<std::string> get_contents(std::vector<std::string> element_names) const;
-		std::vector<std::string> get_element_contents(std::vector<std::string> element_names) const;
-		std::string get_one_content_for_element(std::vector<std::string> element_names) const;
+		std::string get_attribute_content(std::vector<std::string> element_names, std::string attribute_name);
+		std::vector<std::string> get_contents(std::vector<std::string> element_names);
+		std::vector<std::string> get_element_contents(std::vector<std::string> element_names);
+		std::string get_one_content_for_element(std::vector<std::string> element_names);
 
 		std::vector<std::string> get_elements(std::vector<std::string> element_names) const;
 		std::vector<std::string> get_attributes_for_elements(std::vector<std::string> element_names) const;
@@ -108,6 +118,9 @@ class Xml {
 		std::vector<Node> get_element_by_node(const Node& node) const;
 
 		int apply_variables();
+
+		/* 打印所有解析的 */
+		void print_all();
 };
 }
 

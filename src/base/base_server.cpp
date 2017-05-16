@@ -8,14 +8,20 @@
 
 #include <functional>
 
+#include "defs.h"
 #include "base_server.h"
+
+void BaseServer::read_opt_debug() {
+	info(_server_name.c_str(), "Read debug level optinal ......");
+
+	_log_flag = _config->get_define_int(_server_name, "debug", (int)LogLevel::NO, (int)LogLevel::ALL);
+
+	return;
+}
 
 /* 对应BaseServer中的项，尝试读取opt */
 void BaseServer::read_internal_opt() {
 	info(_server_name.c_str(), "Read internal optinal ......");
-
-	_log_flag = _config->get_define_int(_server_name, "debug", (int)LogLevel::NO, (int)LogLevel::ALL);
-
 	return;
 }
 
@@ -27,16 +33,19 @@ void BaseServer::main(int argc, char** argv) {
 	// 参数处理
 	deal_opt(argc, argv);
 
-	// 读取选项opt的参数
-	read_internal_opt();
+	// 读取选项opt的参数:
+	// todo: debug flag暂可以不用动~~~~
+	read_opt_debug();
 
 	// 创建日志实例，并设置level
 	Log::instance()->set_log_level(_log_flag);
 
-	// 读取claw.conf的配置，和安全相关的
+	// 读取guard.conf的配置，和安全相关的:
+	// todo
 	if (read_config() == -1) {
 		fatal(_server_name.c_str(), "Read config file failed.");
 	}
+	read_internal_opt();
 
 	/* Exit if testing config */
 	if (_test_flag) {
@@ -48,8 +57,12 @@ void BaseServer::main(int argc, char** argv) {
 		Log::instance()->set_daemon(_daemon_flag);
 	}
 
-	// 具体初始化处理
-	initial();
+	/* 具体初始化处理
+	 * todo:
+	 * */
+	if (initial() < 0) {
+		fatal(_server_name.c_str(), "Initial failed.");
+	}
 
 	if (create_pid(getpid()) < 0) {
 		error(_server_name.c_str(), "Unable to create PID file.");
@@ -64,6 +77,7 @@ void BaseServer::main(int argc, char** argv) {
 	}
 
 	// 基类提供接口，派生类继承实现
+	// todo:
 	run();
 
 	return;
@@ -113,14 +127,16 @@ void BaseServer::do_daemon() {
 
 	/* Become session leader */
 	if (setsid() < 0) {
-		error(_server_name.c_str(), "Error during setsid()-call due to [(%d)-(%s)]", errno, strerror(errno));
+		error(_server_name.c_str(), __FILE__, __LINE__,
+				"Error during setsid()-call due to [(%d)-(%s)]", errno, strerror(errno));
 		return;
 	}
 
 	/* Fork again */
 	pid = fork();
 	if (pid < 0) {
-		error(_server_name.c_str(), "Could not fork due to [(%d)-(%s)]", errno, strerror(errno));
+		error(_server_name.c_str(), __FILE__, __LINE__,
+				"Could not fork due to [(%d)-(%s)]", errno, strerror(errno));
 		return;
 	} else if (pid) {
 		exit(0);
@@ -137,7 +153,8 @@ void BaseServer::do_daemon() {
 
 	/* Go to / */
 	if (chdir("/") == -1) {
-		error(_server_name.c_str(), "Unable to chdir to directory '%s' due to [(%d)-(%s)]", "/", errno, strerror(errno));
+		error(_server_name.c_str(), __FILE__, __LINE__,
+				"Unable to chdir to directory '%s' due to [(%d)-(%s)]", "/", errno, strerror(errno));
 	}
 	return;
 }
@@ -205,14 +222,14 @@ void BaseServer::deal_opt(int argc, char **argv) {
 
 void BaseServer::print_header() {
 	std::cerr << " " << std::endl;
-	std::cerr << __claw_name << " " << __version << " - " << __author << " (" << __contact << ")" << std::endl;
+	std::cerr << __guard_name << " " << __version << " - " << __author << " (" << __contact << ")" << std::endl;
 	std::cerr << __site << std::endl;
 	return;
 }
 
 void BaseServer::print_version() {
 	std::cerr << " " << std::endl;
-	std::cerr << __claw_name << " " << __version << " - " << __author << std::endl;
+	std::cerr << __guard_name << " " << __version << " - " << __author << std::endl;
 	std::cerr << " " << std::endl;
 	std::cerr << __license << std::endl;
 

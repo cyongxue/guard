@@ -19,14 +19,16 @@ class Chroot {
 		static Chroot*  _instance;
 
 	private:
-		Chroot(std::string server_name, std::string base_dir): _server_name(server_name), _base_dir(base_dir) {
+		Chroot(const std::string& server_name, const std::string& base_dir):
+			_server_name(server_name), _base_dir(base_dir) {
 			_is_chroot = false;
 		}
 
 	public:
-		static Chroot* instance(std::string server_name = "", std::string base_dir = "");
+		static Chroot* instance(const std::string& server_name = "",
+				const std::string& base_dir = "");
 
-		std::string full_file_path(const std::string file_name);
+		std::string full_file_path(const std::string& file_name);
 
 		int do_chroot();
 };

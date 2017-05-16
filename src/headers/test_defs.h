@@ -9,8 +9,11 @@
 #ifndef SRC_HEADERS_TEST_DEFS_H_
 #define SRC_HEADERS_TEST_DEFS_H_
 
+#define ROOTCHECK_IN_SYSCHECK		1
 
+#define INOTIFY_ENABLED	1
 
+#define Darwin 1
 
 
 #endif /* SRC_HEADERS_TEST_DEFS_H_ */

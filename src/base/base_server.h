@@ -14,6 +14,12 @@
 #include "base_config.h"
 
 class BaseServer {
+	public:
+		enum NotifyType {
+			QUEUE = 101,
+			SYSLOG = 102,
+		};
+
 	private:
 		std::string _server_name;
 
@@ -26,7 +32,7 @@ class BaseServer {
 		std::string	_cfg_file;
 		std::string _base_dir;				// 程序的基础目录
 
-		std::unique_ptr<BaseConfig> 	_config;				// 服务相关的配置信息
+		std::shared_ptr<BaseConfig> 	_config;				// 服务相关的配置信息
 
 	protected:
 		void print_header();
@@ -48,12 +54,16 @@ class BaseServer {
 		};
 		virtual ~BaseServer() = default;
 
-		void set_config(BaseConfig* config) {
-			_config = std::move(config);
+		void set_config(std::shared_ptr<BaseConfig> config) {
+			_config = config;
 			return;
 		}
+		std::shared_ptr<BaseConfig> config() const { return _config; }
 
 		void set_cfg_file(std::string cfg_file);
+
+		void set_base_dir(const std::string& base_dir) { _base_dir = base_dir; }
+		const std::string& base_dir() const { return _base_dir; }
 
 		void do_daemon();
 		std::string server_name() const;
@@ -61,6 +71,7 @@ class BaseServer {
 		void print_version();
 		void help_usage();
 
+		void read_opt_debug();
 		virtual void read_internal_opt();
 
 		virtual int read_config() {
@@ -68,9 +79,9 @@ class BaseServer {
 			return 0;
 		}
 
-		virtual void initial() {
+		virtual int initial() {
 			info(_server_name.c_str(), "Begin initial ......");
-			return;
+			return 0;
 		}
 
 		virtual void deal_signal();

@@ -5,3 +5,10 @@ src/log/logs
 .project
 .settings/
 */*.o
+*/*.dSYM/
+*/test
+
+
+src/xml/test/test
+src/xml/test/test.dSYM/
+src/xml/xml.o

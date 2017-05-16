@@ -6,19 +6,19 @@
  *      Author: yongxue@cyongxue@163.com
  */
 
-#include "util.h"
+#include "chroot.h"
 #include "log.h"
 
 Chroot* Chroot::_instance = nullptr;
 
-static Chroot* Chroot::instance(std::string server_name, std::string base_dir) {
+static Chroot* Chroot::instance(const std::string& server_name, const std::string& base_dir) {
 	if (_instance == nullptr) {
 		_instance = new Chroot(server_name, base_dir);
 	}
 	return _instance;
 }
 
-std::string Chroot::full_file_path(const std::string file_name) {
+std::string Chroot::full_file_path(const std::string& file_name) {
 
 	std::string ret_file_name;
 

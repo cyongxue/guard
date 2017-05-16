@@ -11,8 +11,8 @@
 <!--
   <lala></2lala>
   <aart2>test lala</aart2>
--->
-  <aatr2/>lele<aatr2/>
+
+  <aatr2/>lele<aatr2/>-->
 </test>
 
 <test2 name="$lala">
@@ -23,11 +23,11 @@
   <aatr4>lala-abc</aatr4>
 </test2>
 
-<claw_config>
+<guard_config>
   <active_response>
     <disabled>yes please \< lala</disabled>
   </active_response>
-</claw_config>
+</guard_config>
 
 <myxml1 name="name1" value="abc">
   <element1 name="mytestname" value='element1value'>content1</element1>

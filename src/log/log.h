@@ -73,23 +73,23 @@ class Log {
 		void set_log_level(LogLevel level);
 
 		/* 对外提供日志打印处理 */
-		void log(LogLevel log_level, const char* module, const char *fmt, ...);
+		void log(LogLevel log_level, const std::string module, const std::string file_name, int file_line, const char *fmt, ...);
 
-		static Log* instance(std::string path = "./logs", std::string name = "claw.log");
+		static Log* instance(std::string path = "./logs", std::string name = "guard.log");
 };
 
 //#define PRINT_TEST
 #ifndef PRINT_TEST
 // debug级别日志
-#define debug(module, fmt, args...)		Log::instance()->log(LogLevel::DEBUG, module, fmt, ##args)
+#define debug(module, fmt, args...)		Log::instance()->log(LogLevel::DEBUG, module, __FILE__, __LINE__, fmt, ##args)
 // info级别日志
-#define info(module, fmt, args...)		Log::instance()->log(LogLevel::INFO, module, fmt, ##args)
+#define info(module, fmt, args...)		Log::instance()->log(LogLevel::INFO, module, __FILE__, __LINE__, fmt, ##args)
 // warn级别日志
-#define warn(module, fmt, args...)		Log::instance()->log(LogLevel::WARN, module, fmt, ##args)
+#define warn(module, fmt, args...)		Log::instance()->log(LogLevel::WARN, module, __FILE__, __LINE__, fmt, ##args)
 // err级别日志
-#define error(module, fmt, args...)		Log::instance()->log(LogLevel::ERROR, module, fmt, ##args)
+#define error(module, fmt, args...)		Log::instance()->log(LogLevel::ERROR, module, __FILE__, __LINE__, fmt, ##args)
 // fatal级别日志，并exit(1)退出进程
-#define fatal(module, fmt, args...)		{Log::instance()->log(LogLevel::FATAL, module, fmt, ##args); exit(1);}
+#define fatal(module, fmt, args...)		{Log::instance()->log(LogLevel::FATAL, module, __FILE__, __LINE__, fmt, ##args); exit(1);}
 #else
 #define debug(module, fmt, args...)		printf(fmt, ##args)
 #define info(module, fmt, args...)		printf(fmt, ##args)

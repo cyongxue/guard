@@ -12,7 +12,7 @@
 
 /**
  * 日志格式：
- * 2017/02/22 13:19:28 claw-remoted: INFO: [msg].[file:file_line]
+ * 2017/02/22 13:19:28 guard-remoted: INFO: [msg].[file:file_line]
  */
 
 Log* Log::_instance = nullptr;
@@ -89,7 +89,7 @@ void Log::set_log_level(LogLevel level) {
 	return;
 }
 
-void Log::log(LogLevel log_level, const char* module, const char *fmt, ...) {
+void Log::log(LogLevel log_level, const std::string module, const std::string file_name, int file_line, const char *fmt, ...) {
 
 	std::string str_log_level = log_level_str[(int)log_level];
 
@@ -120,7 +120,7 @@ void Log::log(LogLevel log_level, const char* module, const char *fmt, ...) {
 			(void)fprintf(_fp, "%d/%02d/%02d %02d:%02d:%02d ",
 							  p->tm_year + 1900, p->tm_mon + 1,
 							  p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
-			(void)fprintf(_fp, "%s: %s: ", module, str_log_level.c_str());
+			(void)fprintf(_fp, "%s: %s: ", module.c_str(), str_log_level.c_str());
 
 			// 打印内容
 			va_list args;
@@ -128,7 +128,7 @@ void Log::log(LogLevel log_level, const char* module, const char *fmt, ...) {
 			(void)vfprintf(_fp, fmt, args);
 			va_end(args);
 
-			fprintf(_fp, ".[%s:%d]", __FILE__, __LINE__);
+			fprintf(_fp, ".[%s:%d]", file_name.c_str(), file_line);
 			fprintf(_fp, "\n");
 
 			fflush(_fp);
@@ -141,7 +141,7 @@ void Log::log(LogLevel log_level, const char* module, const char *fmt, ...) {
 		(void)fprintf(stderr, "%d/%02d/%02d %02d:%02d:%02d ",
 							  p->tm_year + 1900, p->tm_mon + 1,
 							  p->tm_mday, p->tm_hour, p->tm_min, p->tm_sec);
-		(void)fprintf(stderr, "%s: %s: ", module, str_log_level.c_str());
+		(void)fprintf(stderr, "%s: %s: ", module.c_str(), str_log_level.c_str());
 
 		// 打印内容
 		va_list args;
@@ -149,7 +149,7 @@ void Log::log(LogLevel log_level, const char* module, const char *fmt, ...) {
 		(void)vfprintf(stderr, fmt, args);
 		va_end(args);
 
-		fprintf(stderr, ".[%s:%d]", __FILE__, __LINE__);
+		fprintf(stderr, ".[%s:%d]", file_name.c_str(), file_line);
 		fprintf(stderr, "\n");
 	}
 
@@ -165,7 +165,7 @@ int main() {
 ////	Log::instance()->log(LogLevel::INFO, "Daemon", "%s", "==========Daemon Daemon");
 	debug("Test", "%s", "hello world");
 //	fatal("Fatal", "%s", "hello world");
-	info("Daemon", "%s", "==========Daemon Daemon");
+	debug("Daemon", "%s", "==========Daemon Daemon");
 	return 0;
 }
 #endif
