@@ -4,9 +4,8 @@ src/log/logs
 .cproject
 .project
 .settings/
-*/*.o
-*/*.dSYM/
-*/test
+*.o
+*.dSYM/
 
 
 src/xml/test/test

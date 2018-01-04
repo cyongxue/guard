@@ -1,59 +1,73 @@
 /*
- *  net_server.cpp, Copyright (c) 2017, cyongxue@163.com
+ *  net_socket.cpp, Copyright (c) 2017, cyongxue@163.com
  *  All rights reserved
  *
- *  Created on: 2017年3月21日
+ *  Created on: 2017年6月3日
  *      Author: yongxue@cyongxue@163.com
  */
 
-#include <unistd.h>
-
-#include "net_server.h"
+#include "net_socket.h"
 
 namespace net {
 
-int UnixDomainServer::bind_server(const int max_msg) {
-	unlink(_path.c_str());
+int SocketClient::connect_server(const int max_msg) {
 
-	_fd = socket(PF_UNIX, SOCK_DGRAM, 0);
-	if (_fd < 0) {
-		error(_module.c_str(), "create server socket failed: '%d: %s'", errno, strerror(errno));
+	if (_ip.empty() || _port.empty()) {
+		error(_module.c_str(), "No server addr ...");
 		return -1;
 	}
 
-	if (bind(_fd, (struct sockaddr *)&_unix_addr, SUN_LEN(&_unix_addr)) < 0) {
-		error(_module.c_str(), "bind server socket failed: '%d: %s'", errno, strerror(errno));
-		close_fd();
+	struct addrinfo hints;
+	memset(&hints, 0, sizeof(struct addrinfo));
+	/* Allow IPv4 or IPv6 if local_ip isn't specified */
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_protocol = _proto;
+	if (_proto == IPPROTO_TCP) {
+		hints.ai_socktype = SOCK_STREAM;
+	} else if (_proto == IPPROTO_UDP) {
+		hints.ai_socktype = SOCK_DGRAM;
+	} else {
+		error(_module.c_str(), "Input proto type is wrong: '%d'", _proto);
+		return -1;
+	}
+	hints.ai_flags = 0;
+
+	struct addrinfo *result;
+	auto ret = getaddrinfo(_ip.c_str(), _port.c_str(), &hints, &result);
+	if (ret != 0) {
+		error(_module.c_str(), "getaddrinfo failed.");
 		return -1;
 	}
 
-	if (chmod(_path.c_str(), _mode) < 0) {
-		error(_module.c_str(), "chmod '%s' failed: '%d: %s'", _path.c_str(), errno, strerror(errno));
-		close_fd();
+	int sock = -1;
+	struct addrinfo *rp;
+	for (rp = result; rp != NULL; rp = rp->ai_next) {
+		sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (sock == -1) {
+			error(_module.c_str(), "create net client socket failed: '%d:%s'", errno, strerror(errno));
+			continue;
+		}
+
+		if (connect(sock, rp->ai_addr, rp->ai_addrlen) != -1) {
+			break;                  /* Success */
+		}
+		else {
+			error(_module.c_str(), "bind net server socket failed: '%d:%s'", errno, strerror(errno));
+			close(sock);
+		}
+	}
+
+	if (rp == nullptr) {
+		error(_module.c_str(), "No address can use for: '%s:%s'", _ip.c_str(), _port.c_str());
+		freeaddrinfo(result);           /* No longer needed */
 		return -1;
 	}
 
-	if (set_max_recvbuf_size(max_msg) < 0) {
-		error(_module.c_str(), "set_max_recvbuf_size failed.");
-		close_fd();
-		return -1;
-	}
+	info(_module.c_str(), "Connected to '%s::%s'", _ip.c_str(), _port.c_str());
+	_fd = sock;
 
+	freeaddrinfo(result);           /* No longer needed */
 	return 0;
-}
-
-std::shared_ptr<UnixDomainServer> read_msg_queue(const std::string& queue_path) {
-	auto queue = std::make_shared<UnixDomainServer>(queue_path, 0660);
-	if (queue == nullptr) {
-		return nullptr;
-	}
-
-	if (queue->bind_server(OS_SIZE_6144 + 512) < 0) {
-		error(NET, "UnixDomainServer bind server error.");
-		return nullptr;
-	}
-
-	return queue;
 }
 
 int UdpServer::bind_server(const int max_msg) {
@@ -186,6 +200,9 @@ int TcpServer::to_listen() {
 	return 0;
 }
 
+/**
+ * Accept a TCP connection
+ */
 std::shared_ptr<RemoteClient> TcpServer::to_accept() {
 	struct sockaddr_storage cli_addr;
 	unsigned int addr_len = sizeof(cli_addr);
@@ -197,7 +214,7 @@ std::shared_ptr<RemoteClient> TcpServer::to_accept() {
 		return nullptr;
 	}
 
-	auto src_ip = util::sockaddr_to_str((struct sockaddr *) &cli_addr);
+	auto src_ip = sockaddr_to_str((struct sockaddr *) &cli_addr);
 	if (src_ip.empty()) {
 		warn(_module.c_str(), "parse client Address Failed.");
 	}
